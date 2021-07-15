@@ -1,11 +1,16 @@
-The actual science of logic is conversant at present only with things either
-certain, impossible, or entirely doubtful, none of which (fortunately) we
-have to reason on. Therefore the true logic for this world is the calculus
-of Probabilities, which takes account of the magnitude of the probability
-which is, or ought to be, in a reasonable man’s mind.
-James Clerk Maxwell (1850)
+Update July 2021:
 
----- readme starts here ----
+This visualization section is largely copied from last years project. Two files are added: 
+
+pyVis.py: This script takes care of 3D visualization. Make sure to have Mayavi installed before usage.
+
+compactPIF no collagen.py: Does the same as compactPIF.py, but removes all collagen. It can be used to obtain a visualization without collagen blocking the view.
+
+
+
+----------------------------------------------------
+
+Original 2020:
 
 I will briefly explain the files listed in this directory:
 
@@ -19,6 +24,3 @@ Makefile: These are the compilation instructions for pifVisualizer. To compile s
 gridlogic and pifVisualizer are some sloppy cpp files to draw everything, never said it was going to be pretty ;).
 
 
----- Please write you desired functionality here ----
-
-- Passive movie rendering
