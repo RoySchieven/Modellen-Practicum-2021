@@ -1,0 +1,120 @@
+<CompuCell3D Revision="20200118" Version="4.1.1">
+
+    <!-- ____________________________SIMULATION PARAMETERS____________________________ -->
+
+    <Metadata>
+        <NumberOfProcessors>1</NumberOfProcessors>
+        <DebugOutputFrequency>10</DebugOutputFrequency>
+        <!-- <NonParallelModule Name="Potts"/> -->
+    </Metadata>
+
+    <!-- ____________________________MODEL PARAMETERS____________________________ -->
+
+    <Potts>
+        <!-- Basic properties of Potts model -->
+        <Dimensions x="400" y="400" z="1"/>   <!--FOR 2D-->
+        <!--Dimensions x="200" y="200" z="200"/--> <!--FOR 3D -->
+        <Steps>100000</Steps>
+        <NeighborOrder>1</NeighborOrder>
+        <Boundary_x>Periodic</Boundary_x>
+        <Boundary_y>Periodic</Boundary_y>
+        <!--Boundary_z>Periodic</Boundary_z--> <!--FOR 3D only-->
+
+        <!-- The temperature, aka fluctuation amplitude: -->
+        <FluctuationAmplitude>
+            <FluctuationAmplitudeParameters CellType="Tumor" FluctuationAmplitude="15"/>
+            <FluctuationAmplitudeParameters CellType="Collagen" FluctuationAmplitude="0"/>
+        </FluctuationAmplitude>
+    </Potts>
+
+    <Plugin Name="CellType">
+        <!-- Listing all cell types in the simulation -->
+        <CellType TypeId="0" TypeName="Medium"/>
+        <CellType Freeze="" TypeId="1" TypeName="Collagen"/> <!-- add Freeze="" to disable proteolysis -->
+        <CellType TypeId="2" TypeName="Tumor"/>
+    </Plugin>
+
+    <Plugin Name="Volume"/> <!-- Parameters set in Python steppable -->
+
+    <Plugin Name="Surface"/> <!-- Parameters in python steppable only work when your call the plugin like this -->
+
+    <!-- ____________________________ADHESION____________________________ -->
+
+    <Plugin Name="Contact">
+        <!-- The following values are from Scianna et al.: TM 6.5, TC 4.5, TT 12.0 -->
+        <Energy Type1="Tumor" Type2="Medium">6.5</Energy>
+        <Energy Type1="Tumor" Type2="Collagen">4.5</Energy>
+        <Energy Type1="Tumor" Type2="Tumor">12.0</Energy>
+
+        <!-- High so the adhesion is weak -->
+        <Energy Type1="Medium" Type2="Medium">20.0</Energy>
+        <Energy Type1="Medium" Type2="Collagen">20.0</Energy>
+        <Energy Type1="Collagen" Type2="Collagen">20.0</Energy>
+        <NeighborOrder>4</NeighborOrder>
+    </Plugin>
+
+    <!-- ____________________________CATERPILLAR EFFECT____________________________ -->
+
+    <!-- The constants for the caterpillar (CPT field) movement are of course a bit finetuned, feel free to play with them -->
+    <Plugin Name="Chemotaxis">
+        <ChemicalField Name="CTP" Source="DiffusionSolverFE">
+            <ChemotaxisByType Lambda="20.0" Type="Tumor"/>
+        </ChemicalField>
+    </Plugin>
+
+    <Steppable Type="DiffusionSolverFE">
+        <DiffusionField Name="CTP">
+            <DiffusionData>
+                <FieldName>CTP</FieldName>
+                <GlobalDiffusionConstant>0.00</GlobalDiffusionConstant>
+                <GlobalDecayConstant>0.00</GlobalDecayConstant>
+
+                <DoNotDiffuseTo>Collagen</DoNotDiffuseTo>
+                <DiffusionCoefficient CellType="Collagen">0.00</DiffusionCoefficient>
+                <DiffusionCoefficient CellType="Tumor">4e-04</DiffusionCoefficient>
+                <DiffusionCoefficient CellType="Medium">0.00</DiffusionCoefficient>
+
+                <DecayCoefficient CellType="Collagen">0.005</DecayCoefficient>
+                <DecayCoefficient CellType="Tumor">0.001</DecayCoefficient>
+                <DecayCoefficient CellType="Medium">0.02</DecayCoefficient>
+
+                <!--DoNotDecayIn>Tumor</DoNotDecayIn>
+                <DoNotDiffuseTo>Medium</DoNotDiffuseTo-->
+            </DiffusionData>
+
+            <SecretionData>
+                <SecretionOnContact Type="Tumor" SecreteOnContactWith="Collagen">0.01</SecretionOnContact>
+            </SecretionData>
+        </DiffusionField>
+
+        <!-- ____________________________PROTEOLYSIS (MMP FIELD)____________________________ -->
+
+        <DiffusionField Name="MMP">
+            <DiffusionData>
+                <FieldName>MMP</FieldName>
+                <GlobalDiffusionConstant>1.6e-03
+                </GlobalDiffusionConstant> 
+                <GlobalDecayConstant>7e-03</GlobalDecayConstant>
+                <!-- Maybe add cell-specific decay and diffusion constants? -->
+            </DiffusionData>
+        </DiffusionField>
+
+    </Steppable>
+
+    <Plugin Name="Secretion"/>
+
+
+    <!-- ____________________________INITIAL CONDITION____________________________ -->
+
+
+    <Steppable Type="PIFInitializer">
+        <!-- Initial layout of cells using PIFF file. -->
+        <PIFName>PIF files/2d sandwich network ratio10.piff</PIFName>
+    </Steppable>
+  
+    <!--Steppable Frequency="50" Type="PIFDumper"-->
+        <!-- Periodically stores cell layout configuration in a piff format -->
+        <!--PIFName>./2d sandwich network ratio10</PIFName>
+        <PIFFileExtension>piff</PIFFileExtension>
+    </Steppable-->
+</CompuCell3D>

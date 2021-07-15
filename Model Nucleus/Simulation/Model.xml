@@ -1,0 +1,159 @@
+<CompuCell3D Revision="20200118" Version="4.1.1">
+
+    <!-- ____________________________SIMULATION PARAMETERS____________________________ -->
+
+    <Metadata>
+        <NumberOfProcessors>1</NumberOfProcessors>
+        <DebugOutputFrequency>10</DebugOutputFrequency>
+        <!-- <NonParallelModule Name="Potts"/> -->
+    </Metadata>
+    
+
+
+    <!-- ____________________________MODEL PARAMETERS____________________________ -->
+
+    <Potts>
+        <!-- Basic properties of Potts model -->
+        <Dimensions x="400" y="400" z="1"/>   <!--FOR 2D-->
+        <!--Dimensions x="200" y="200" z="200"/--> <!--FOR 3D -->
+        <Steps>100000</Steps>
+        <NeighborOrder>1</NeighborOrder>
+        <Boundary_x>Periodic</Boundary_x>
+        <Boundary_y>Periodic</Boundary_y>
+        <!--Boundary_z>Periodic</Boundary_z--> <!--FOR 3D -->
+
+        <!-- The temperature, aka fluctuation amplitude: -->
+        <FluctuationAmplitude>
+            <FluctuationAmplitudeParameters CellType="Tumor" FluctuationAmplitude="15"/>
+            <FluctuationAmplitudeParameters CellType="Nucleus" FluctuationAmplitude="0.5"/> <!-- Keep low, as nucleus is rigid -->
+            <FluctuationAmplitudeParameters CellType="Collagen" FluctuationAmplitude="0"/>
+        </FluctuationAmplitude>
+    </Potts>
+
+    <Plugin Name="CellType">
+        <!-- Listing all cell types in the simulation -->
+        <CellType TypeId="0" TypeName="Medium"/>
+        <CellType Freeze="" TypeId="1" TypeName="Collagen"/>
+        <CellType TypeId="2" TypeName="Tumor"/>
+        <CellType TypeId="3" TypeName="Nucleus"/>
+    </Plugin>
+
+    <Plugin Name="Volume"/> <!-- Parameters set in Python steppable -->
+
+    <Plugin Name="Surface"/> <!-- Parameters in python steppable only work when your call the plugin like this -->
+
+    <!-- ____________________________ADHESION____________________________ -->
+
+    <Plugin Name="Contact">
+        <!-- The following values are from Scianna et al.: TM 6.5, TC 4.5, TT 12.0 -->
+        <Energy Type1="Tumor" Type2="Medium">6.5</Energy>
+        <Energy Type1="Tumor" Type2="Collagen">4.5</Energy>
+        <Energy Type1="Tumor" Type2="Tumor">12.0</Energy>
+        
+        <Energy Type1="Tumor" Type2="Nucleus">12.0</Energy>
+        <Energy Type1="Nucleus" Type2="Medium">6.5</Energy>
+        <Energy Type1="Nucleus" Type2="Collagen">4.5</Energy>
+        <Energy Type1="Nucleus" Type2="Nucleus">12.0</Energy>
+
+        <!-- High so the adhesion is weak -->
+        <Energy Type1="Medium" Type2="Medium">20.0</Energy>
+        <Energy Type1="Medium" Type2="Collagen">20.0</Energy>
+        <Energy Type1="Collagen" Type2="Collagen">20.0</Energy>
+        <NeighborOrder>1</NeighborOrder>
+    </Plugin>
+    
+    <!-- Plug in for internal adhesion -->
+    <Plugin Name="ContactInternal">
+        <Energy Type1="Tumor" Type2="Nucleus">-10.0</Energy>  <!-- Setting this too negative encourages splitting of nuclei within their compartment -->
+        <NeighborOrder>1</NeighborOrder>
+    </Plugin>
+  
+ 
+    <!-- ____________________________FOCAL POINT PLASTICITY____________________________ -->
+
+    
+    <Plugin Name="FocalPointPlasticity">   
+    <!-- Plugin to make sure Tumor and Nucleus stay together -->
+        <InternalParameters Type1="Tumor" Type2="Nucleus">
+            <Lambda>10</Lambda>
+            <ActivationEnergy>-50</ActivationEnergy>
+            <TargetDistance>0</TargetDistance>
+            <MaxDistance>400</MaxDistance> <!-- Large to make sure Tumor and Nucleus are always linked -->
+            <MaxNumberOfJunctions>1</MaxNumberOfJunctions>
+        </InternalParameters>
+   
+        <NeighborOrder>1</NeighborOrder>
+    </Plugin>
+    
+    <!-- ____________________________CATERPILLAR EFFECT____________________________ -->
+
+    <!-- The constants for the caterpillar (CPT field) movement are of course a bit finetuned, feel free to play with them -->
+    <Plugin Name="Chemotaxis">
+        <ChemicalField Name="CTP" Source="DiffusionSolverFE">
+            <ChemotaxisByType Lambda="20.0" Type="Tumor"/>
+            <ChemotaxisByType Lambda="20.0" Type="Nucleus"/>
+        </ChemicalField>
+    </Plugin>
+
+    <Steppable Type="DiffusionSolverFE">
+        <DiffusionField Name="CTP">
+            <DiffusionData>
+                <FieldName>CTP</FieldName>
+                <GlobalDiffusionConstant>0.00</GlobalDiffusionConstant>
+                <GlobalDecayConstant>0.00</GlobalDecayConstant>
+
+                <DoNotDiffuseTo>Collagen</DoNotDiffuseTo>
+                <DiffusionCoefficient CellType="Collagen">0.00</DiffusionCoefficient>
+                <DiffusionCoefficient CellType="Tumor">4e-04</DiffusionCoefficient>
+                <DiffusionCoefficient CellType="Medium">0.00</DiffusionCoefficient>
+                <DiffusionCoefficient CellType="Nucleus">4e-04</DiffusionCoefficient>
+
+                <DecayCoefficient CellType="Collagen">0.005</DecayCoefficient>
+                <DecayCoefficient CellType="Tumor">0.001</DecayCoefficient>
+                <DecayCoefficient CellType="Nucleus">0.001</DecayCoefficient>
+                <DecayCoefficient CellType="Medium">0.02</DecayCoefficient>
+
+                <!--DoNotDecayIn>Tumor</DoNotDecayIn>
+                <DoNotDiffuseTo>Medium</DoNotDiffuseTo-->
+            </DiffusionData>
+
+            <SecretionData>
+                <SecretionOnContact Type="Tumor" SecreteOnContactWith="Collagen">0.01</SecretionOnContact>
+                <SecretionOnContact Type="Nucleus" SecreteOnContactWith="Collagen">0.01</SecretionOnContact>
+            </SecretionData>
+        </DiffusionField>
+
+        <!-- ____________________________PROTEOLYSIS (MMP FIELD)____________________________ -->
+
+        <DiffusionField Name="MMP">
+            <DiffusionData>
+                <FieldName>MMP</FieldName>
+                <GlobalDiffusionConstant>1.6e-03
+                </GlobalDiffusionConstant> 
+                <GlobalDecayConstant>7e-03</GlobalDecayConstant>
+            </DiffusionData>
+        </DiffusionField>
+
+    </Steppable>
+
+    <Plugin Name="Secretion"/>
+
+
+    <!-- ____________________________INITIAL CONDITION AND PIF DUMPER____________________________ -->
+
+
+    <Steppable Type="PIFInitializer">
+        <!-- Initial layout of cells using PIFF file. -->
+        <PIFName>PIF files/2d collagen3000 nucleus.piff</PIFName>
+    </Steppable>
+  
+    <!--Steppable Frequency="50" Type="PIFDumper"-->
+        <!-- Periodically stores cell layout configuration in a piff format -->
+        <!--PIFName>./2d collagen3000 nucleus</PIFName>
+        <PIFFileExtension>piff</PIFFileExtension>
+    </Steppable-->
+
+    
+    
+    
+</CompuCell3D>
